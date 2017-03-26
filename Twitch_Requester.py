@@ -6,7 +6,7 @@ as well as my love of the twitch platform
 
 The api requires authentication login via twitch.
 -------------------------------------------------
-As a result, throws 404 error on calling url request.
+If no app id, throws 404 error on calling url request.
 --------------------------------------------------
 
 Plans for this application include:
