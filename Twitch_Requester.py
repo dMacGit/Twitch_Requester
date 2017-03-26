@@ -1,10 +1,18 @@
 
-'''This currently does not work!
+'''
+=================================================
+This is a test application joining learning python
+as well as my love of the twitch platform
+
 The api requires authentication login via twitch.
 -------------------------------------------------
 As a result, throws 404 error on calling url request.
-- Can either try a different http library
-- Or use authentication login. :(
+--------------------------------------------------
+
+Plans for this application include:
+- Reqesting specific top channels of a game type
+- Returning the m3u8 playlist data
+- Loading up the m3u8 steam and playing it.
 '''
 
 import requests
@@ -25,11 +33,10 @@ def request_From_Twitch(lastApiCall_time, clientID):
     number = x+1
     game_Name = jsonData['top'][x]['game']['name']
     print('%s is number: %d in the list' % (game_Name,number))
-  ##print(jsonData['top'][1]['game']['name'])
 
+#Below are the calls to the config file with the app id.
 lastApiCall_time = 0
 file = open('config.txt')
-
 
 id = file.readline().split(':')[1]
 request_From_Twitch(lastApiCall_time,id)
