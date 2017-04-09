@@ -112,19 +112,19 @@ class m3u8_playlist():
     print(self.medium['video'])
     print(self.medium['resolution'])    
 
-def request_From_Twitch(lastApiCall_time, clientID):
-
-  limit = 10
+def request_From_Twitch(lastApiCall_time, clientID, gameList):
   
-  request_URL = "https://api.twitch.tv/kraken/games/top?limit={}&client_id={}".format(limit, clientID )
+  request_URL = "https://api.twitch.tv/kraken/games/top?limit={}&client_id={}".format(resultsLimit, clientID )
   print(request_URL)
   response = requests.get(request_URL)
   jsonData = response.json()
   
   for x in range(len(jsonData['top'])):
-    number = x+1
+    number = (x+1)
     game_Name = jsonData['top'][x]['game']['name']
-    print('%s is number: %d in the list' % (game_Name,number))
+    gameList.insert(x,game_Name)
+    print('%s is number: %d in the list' % (gameList[x],number))
+  print('The gamesList holds %d game names' % (len(gameList)))
 
 def request_TopChannels_ByGame(gameName,lastApiCall_time, clientID):
   '''
@@ -134,8 +134,7 @@ def request_TopChannels_ByGame(gameName,lastApiCall_time, clientID):
     -channel
      -name
   '''
-  limit = 10
-  request_URL = "https://api.twitch.tv/kraken/streams/?game={}&limit={}&client_id={}".format(gameName,limit, clientID )
+  request_URL = "https://api.twitch.tv/kraken/streams/?game={}&limit={}&client_id={}".format(gameName,resultsLimit, clientID )
   print(request_URL)
   response = requests.get(request_URL)
   jsonData = response.json()
@@ -143,7 +142,8 @@ def request_TopChannels_ByGame(gameName,lastApiCall_time, clientID):
   for x in range(len(jsonData['streams'])):
     number = x+1
     channel = jsonData['streams'][x]['channel']['name']
-    print('%s is number: %d in the list' % (channel,number)) 
+    streamList.insert(x,channel)
+    print('%s is number: %d in the list' % (streamList[x],number)) 
 
 def request_Channel(channelName,lastApiCall_time, clientID):
   '''
@@ -183,15 +183,21 @@ def request_m3u8_Playlist(channelName,token,sig,clientID):
   #jsonData = response.json()   
 
 #Below are the calls to the config file with the app id.
+
+resultsLimit = 10
+
+gameList = [None] * resultsLimit
+streamList = [None] * resultsLimit
+
 lastApiCall_time = 0
 file = open('config.txt')
 
 id = file.readline().split(':')[1]
-request_From_Twitch(lastApiCall_time,id)
+request_From_Twitch(lastApiCall_time,id, gameList)
 
 #Example game to grab streams from: Overwatch & channel example: esl_overwatch
-request_TopChannels_ByGame('Overwatch',lastApiCall_time,id)
-request_Channel('esl_overwatch',lastApiCall_time,id)
+request_TopChannels_ByGame(gameList[0],lastApiCall_time,id)
+request_Channel(streamList[0],lastApiCall_time,id)
 
 '''TODO:
 - Might need to remove call to m3u8 function from within request_Channel function.
@@ -199,4 +205,13 @@ request_Channel('esl_overwatch',lastApiCall_time,id)
 - Add support for parsing the m3u8 file, and extracting usefull data. (stream links & resolutions etc)
 - Will have to look into how to play streams.
 - Not sure how to show all of this visually / gui development.
+
+
+* Need to sort out how m3u8 playlist Object will be built and Accessed.
+
+- Possibly created first as empty object, then access and pass in m3u8 file
+- Other accessor methods / functions will return required data / values if 
+object has been populated with the file data.
+
+* Not sure if there should be a seperate object holding the stream data
 '''
