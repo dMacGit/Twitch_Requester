@@ -21,7 +21,7 @@ import json
 class m3u8_playlist():
   
   def __init__(self,data):
-    self.resOffset = 1
+    self.streamOffset = 1
     self.urlOffset = 2
     
     self.videoNames = [ 'chunked', 'high', 'medium', 'low' , 'mobile', 'audio' ]
@@ -82,67 +82,67 @@ class m3u8_playlist():
     #do things
     print('starting playlist extraction!')
     #Grab all lines and hold in a list
-    splitData = self.baseData.split('\n')
+    lines = self.baseData.split('\n')
     '''
     Go through and scan each line for data
     '''
-    startIndex = 1
-    z = 0
-    for x in range(len(splitData)):
-      print('%d index = \n %s' % (x , splitData[x]))
-      tempValue = splitData[x].split(',')
+    videoNamesIndex = 0
+    for lineIndex in range(len(lines)):
+      print('%d index = \n %s' % (lineIndex , lines[lineIndex]))
+      tempValue = lines[lineIndex].split(',')
       print(tempValue)
       #The lines are now split
-      if('#EXT-X-TWITCH-INFO:NODE=' in str(splitData[x].split(','))):
+      #if('#EXT-X-TWITCH-INFO:NODE=' in str(lines[lineIndex].split(','))):
         #ignore first line
-        #print(splitData[x])
-        print('#EXT-X-TWITCH-INFO:')
-      #for z in range(len(self.videoNames)):
+        #print(lines[lineIndex])
+      #  print('#EXT-X-TWITCH-INFO:')
+      #for videoNamesIndex in range(len(self.videoNames)):
         
-      if ('#EXT-X-MEDIA:TYPE=VIDEO' in str(splitData[x])):
-        #ignore first linesplitData[x]):
+      if ('#EXT-X-MEDIA:TYPE=VIDEO' in str(lines[lineIndex])):
+        #ignore first linesplitData[lineIndex]):
         #Grab the next 3 lines as one.
-        dataPart = splitData[x].split(',')[1]
-        value = dataPart.find('"',0)
-        nameString = dataPart[dataPart.find('"')+1:len(dataPart)-1]
-        print('%s -----------> %s' % (dataPart, nameString) )
-        if(self.videoNames[z] in str(splitData[x])):
+        nameValue = lines[lineIndex].split(',')[1]
+        #value = nameValue.find('"',0)
+        nameString = nameValue[nameValue.find('"')+1:len(nameValue)-1]
+        print('%s -----------> %s' % (nameValue, nameString) )
+        if(self.videoNames[videoNamesIndex] in str(lines[lineIndex])):
           
-          print('%s is in this line %s' % (self.videoNames[z], splitData[x]))
-          if('#EXT-X-STREAM-INF:PROGRAM-ID=1' in str(splitData[z])):
-            resData = splitData[z].split(',')
-            for y in range(len(resData)):
-              if('BANDWIDTH' in str(resData[y])):
-                tempSplit = resData[y].split(':')
-                print('tempSplit %s' % tempSplit)
-                self.streams[z]['bandwidth'] = (tempSplit[0].split('=')[1])
-              if('RESOLUTION' in str(resData[y])):                
-                tempSplit = resData[y].split(':')
-                print('tempSplit %s' % tempSplit)              
-                self.streams[z]['resolution'] = (tempSplit[0].split('=')[1])
-              if('CODECS' in str(resData[y])):            
-                tempSplit = resData[y].split(':')
-                print('tempSplit %s' % tempSplit)                
-                self.streams[z]['codecs'] = (tempSplit[0].split('=')[1])
-              if('VIDEO' in str(resData[y])):
-                tempSplit = resData[y].split(':')
-                print('tempSplit %s' % tempSplit)                
-                self.streams[z]['video'] = (tempSplit[0].split('=')[1])
-            
+          print('%s is in this line %s' % (self.videoNames[videoNamesIndex], lines[lineIndex]))
+          lineIndex = lineIndex+self.streamOffset
+          if('#EXT-X-STREAM-INF:PROGRAM-ID=1' in str(lines[lineIndex])):
+            #Extract the data
+            dataSubstring = lines[lineIndex].split(',')
+            for dataIndex in range(len(dataSubstring)):
+              dataObject = dataSubstring[dataIndex].split(':')
+              print('dataObject %s' % dataObject)
+              print('dataObject[videoNamesIndex] ==== %s' % dataObject[0])
+              if('BANDWIDTH' in str(dataSubstring[dataIndex])):
+                self.streams[videoNamesIndex]['bandwidth'] = (dataObject[0].split('=')[1])
+              elif('RESOLUTION' in str(dataSubstring[dataIndex])):                
+                self.streams[videoNamesIndex]['resolution'] = (dataObject[0].split('=')[1])
+              elif('CODECS' in str(dataSubstring[dataIndex])):            
+                self.streams[videoNamesIndex]['codecs'] = (dataObject[0].split('=')[1])
+              elif('VIDEO' in str(dataSubstring[dataIndex])):             
+                self.streams[videoNamesIndex]['video'] = (dataObject[0].split('=')[1])
+                
+          if( 'http://' in lines[lineIndex + self.urlOffset]):
+            print('Grabbing url part: %s' % lines[lineIndex + self.urlOffset])
+            self.streams[videoNamesIndex]['url'] = lines[lineIndex + self.urlOffset]  
           '''else:
-            print("Error: Not expected m3u8 line! \n"+splitData[x+self.resOffset])'''
-        if z < len(self.videoNames)-1:
-          z = z+1
-        print('Z index is now %d' % z)
-        #print(splitData[x])
+            print("Error: Not expected m3u8 line! \n"+lines[lineIndex+self.resOffset])'''
+          
+          if videoNamesIndex < len(self.videoNames)-1:
+            videoNamesIndex = videoNamesIndex+1
+            print('videoNamesIndex index is now %d' % videoNamesIndex)
+        #print(lines[x])
         
         #x+=3
         
       
     
     '''print('######################')
-    print(splitData[0])
-    print(splitData[1])
+    print(lines[0])
+    print(lines[1])
     ##EXT-X-TWITCH-INFO:    
     
     
@@ -174,11 +174,11 @@ def m3u8_parser_Media_Ext(lines, index):
     #ignore first linesplitData[x]):
     #Grab the next 3 lines as one.
     print('-----------> %s' % self.videoNames[z])
-    print('Checking %s is in this line %s' % (self.videoNames[z], splitData[x]))
-    if(self.videoNames[z] in str(splitData[x])):
-      print('%s is in this line %s' % (self.videoNames[z], splitData[x]))
-      if('#EXT-X-STREAM-INF:PROGRAM-ID=1' in str(splitData[x])):
-        resData = splitData[z].split(',')
+    print('Checking %s is in this line %s' % (self.videoNames[z], lines[x]))
+    if(self.videoNames[z] in str(lines[x])):
+      print('%s is in this line %s' % (self.videoNames[z], lines[x]))
+      if('#EXT-X-STREAM-INF:PROGRAM-ID=1' in str(lines[x])):
+        resData = lines[z].split(',')
         for y in range(len(resData)):
           if('BANDWIDTH' in str(resData[y])):
             tempSplit = resData[y].split(':')
@@ -193,16 +193,16 @@ def m3u8_parser_Media_Ext(lines, index):
             print('tempSplit %s' % tempSplit)                
             self.streams[z]['codecs'] = (tempSplit[0].split('=')[1])
           if('VIDEO' in str(resData[y])):
-            tempSplit = resData[y].split(':')
+            tempSplit = resData[dataIndex].split(':')
             print('tempSplit %s' % tempSplit)                
             self.streams[z]['video'] = (tempSplit[0].split('=')[1])
         
       else:
-        print("Error: Not expected m3u8 line! \n"+splitData[x+self.resOffset])
+        print("Error: Not expected m3u8 line! \n"+lines[x+self.resOffset])
     if z < len(self.videoNames)-1:
       z = z+1
     print('Z index is now %d' % z)
-    #print(splitData[x])
+    #print(lines[x])
     
     #x+=3
     
@@ -280,10 +280,10 @@ def request_m3u8_Playlist(channelName,token,sig,clientID, debug):
   data = response.text
   playlist = m3u8_playlist(data)
   playlist.parse_Playlist()
-  '''splitData = data.split('\n')
+  '''lines = data.split('\n')
   print('######################')
-  print(splitData[0])
-  print(splitData[1])
+  print(lines[0])
+  print(lines[1])
   ##EXT-X-TWITCH-INFO:'''
   #jsonData = response.json()   
 
