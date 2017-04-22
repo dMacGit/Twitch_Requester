@@ -18,13 +18,47 @@ Plans for this application include:
 import requests
 import json
 
+
+class streamObject(object):
+  video = ""
+  bandwidth = 0
+  resolution = ""
+  codecs = ""
+  url = ""
+
+  def __init__(self, video, bandwidth, resolution, codecs, url):
+    self.video = video
+    self.bandwidth = bandwidth
+    self.resolution = resolution
+    self.codecs = codecs
+    self.url = url
+    
+  def __repr__(self):
+    return '<streamObject video:%s, bandwidth:%s, resolution:%s, codecs:%s, url:%s >' % (self.video,self.bandwidth, self.resolution, self.codecs, self.url)
+  
+  def __str__(self):
+      return 'video:%s, bandwidth:%s, resolution:%s, codecs:%s, url:%s' % (self.video,self.bandwidth, self.resolution, self.codecs, self.url)  
+
+
 class m3u8_playlist():
+  streamOffset = 0
+  urlOffset = 0
+  streams = []
+  videoNames = []
+  
+  chunked = None
+  high_720p60 = None
+  high_720p30 = None
+  med_480p30 = None
+  low_360p30 = None
+  mob_160p30 = None
+  audio_only = None  
   
   def __init__(self,data):
     self.streamOffset = 1
-    self.urlOffset = 2
+    self.urlOffset = 1
     
-    self.videoNames = [ 'chunked', 'high', 'medium', 'low' , 'mobile', 'audio' ]
+    self.videoNames = [ 'chunked', 'high_720p60', 'high_720p30', 'med_480p30' , 'low_360p30', 'mob_160p30', 'audio_only' ]
     #init the objects
     '''
      #EXT-X-TWITCH-INFO:
@@ -39,16 +73,20 @@ class m3u8_playlist():
     self.baseData = data
     
     
-    self.streamResObject = {'video':None,'bandwidth':None,'resolution':None, 'codecs':None, 'url':None}
+        
+      
     
-    self.chunked = self.streamResObject
-    self.high = self.streamResObject
-    self.medium = self.streamResObject
-    self.low = self.streamResObject
-    self.mobile = self.streamResObject
-    self.audio = self.streamResObject
+    '''self.streamResObject = {'video':None,'bandwidth':None,'resolution':None, 'codecs':None, 'url':None}'''
     
-    self.streams = [ self.chunked, self.high, self.medium, self.low, self.mobile, self.audio ]
+    self.chunked = None
+    self.high_720p60 = None
+    self.high_720p30 = None
+    self.med_480p30 = None
+    self.low_360p30 = None
+    self.mob_160p30 = None
+    self.audio_only = None
+    
+    self.streams = [ self.chunked, self.high_720p60, self.high_720p30, self.med_480p30, self.low_360p30, self.mob_160p30, self.audio_only ]
     
     '''
     
@@ -105,7 +143,16 @@ class m3u8_playlist():
         #value = nameValue.find('"',0)
         nameString = nameValue[nameValue.find('"')+1:len(nameValue)-1]
         print('%s -----------> %s' % (nameValue, nameString) )
-        if(self.videoNames[videoNamesIndex] in str(lines[lineIndex])):
+        if('_' in str(self.videoNames[videoNamesIndex]) ):
+          #No perfect match so split
+          if( 'audio_only' in str(self.videoNames[videoNamesIndex])):
+              check_string = self.videoNames[videoNamesIndex]
+          else:
+              check_string = self.videoNames[videoNamesIndex].split('_')[1]
+              print('Not perfect match need to split name variable to => %s' % check_string)
+        else:
+          check_string = self.videoNames[videoNamesIndex]
+        if( check_string in str(lines[lineIndex])):
           
           print('%s is in this line %s' % (self.videoNames[videoNamesIndex], lines[lineIndex]))
           lineIndex = lineIndex+self.streamOffset
@@ -116,18 +163,38 @@ class m3u8_playlist():
               dataObject = dataSubstring[dataIndex].split(':')
               print('dataObject %s' % dataObject)
               print('dataObject[videoNamesIndex] ==== %s' % dataObject[0])
+              
+              bandwidth, resolution, codecs, video, url = "","","","",""
+              
               if('BANDWIDTH' in str(dataSubstring[dataIndex])):
-                self.streams[videoNamesIndex]['bandwidth'] = (dataObject[0].split('=')[1])
+                bandwidth = (dataObject[0].split('=')[1])
+                print('BANDWIDTH value: %s' % (dataObject[0].split('=')[1]))
               elif('RESOLUTION' in str(dataSubstring[dataIndex])):                
-                self.streams[videoNamesIndex]['resolution'] = (dataObject[0].split('=')[1])
+                resolution = (dataObject[0].split('=')[1])
+                print('RESOLUTION value: %s' % (dataObject[0].split('=')[1]))
               elif('CODECS' in str(dataSubstring[dataIndex])):            
-                self.streams[videoNamesIndex]['codecs'] = (dataObject[0].split('=')[1])
+                codecs = (dataObject[0].split('=')[1])
+                print('CODECS value: %s' % (dataObject[0].split('=')[1]))
               elif('VIDEO' in str(dataSubstring[dataIndex])):             
-                self.streams[videoNamesIndex]['video'] = (dataObject[0].split('=')[1])
+                video = (dataObject[0].split('=')[1])
+                print('VIDEO value: %s' % (dataObject[0].split('=')[1]))
+              
+              
+              print('Checking next url line: %s' % lines[lineIndex+self.urlOffset])
+              if( 'http://' in str(lines[lineIndex+self.urlOffset])):
+                print('Grabbing url part: %s' % lines[lineIndex+self.urlOffset])
+                url = lines[lineIndex+self.urlOffset]
+                   
+              new_Stream = streamObject(video,bandwidth,resolution,codecs,url)
+              self.streams[videoNamesIndex] = new_Stream
+              print('Video stream <%s> has been grabbed! : %s' % (self.videoNames[videoNamesIndex], self.streams[videoNamesIndex]))
+              #video,bandwidth,resolution,codecs,url
+              '''new_stream.video = video
+              new_stream.bandwidth = bandwidth
+              new_stream.resolution = resolution
+              new_stream.codecs = codecs
+              new_stream.url = url'''
                 
-          if( 'http://' in lines[lineIndex + self.urlOffset]):
-            print('Grabbing url part: %s' % lines[lineIndex + self.urlOffset])
-            self.streams[videoNamesIndex]['url'] = lines[lineIndex + self.urlOffset]  
           '''else:
             print("Error: Not expected m3u8 line! \n"+lines[lineIndex+self.resOffset])'''
           
@@ -150,11 +217,8 @@ class m3u8_playlist():
     chuncked['RESOLUTION'] = '852x480'
     chuncked['CODECS'] = 'avc1.77.30,mp4a.40.2'
     chuncked['VIDEO'] = 'medium'''
-    print(self.streams[0]['video'])
-    print(self.streams[0]['resolution'])
-    
-    print(self.streams[2]['video'])
-    print(self.streams[2]['resolution'])    
+    print(self.streams)
+        
 
 class m3u8_Parser():
   '''
