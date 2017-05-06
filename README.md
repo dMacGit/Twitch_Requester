@@ -8,7 +8,9 @@
 
 ### Important note:
 
-_Requires:_ [Requests](http://docs.python-requests.org/en/master/) _&_ [json](https://docs.python.org/2/library/json.html) _modules_
+
+**Requires the Requests Dependency** [![Requests](https://img.shields.io/badge/Release-v2.11.1-blue.svg)](https://pypi.python.org/pypi/requests)
+**& uses the** [json](https://docs.python.org/2/library/json.html) module
 
 **To add Requests module use** [pip](https://docs.python.org/3/installing/) **and simply type** `$ pip install requests`
 
