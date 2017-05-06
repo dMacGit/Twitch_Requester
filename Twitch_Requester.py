@@ -159,27 +159,27 @@ class m3u8_playlist():
           if('#EXT-X-STREAM-INF:PROGRAM-ID=1' in str(lines[lineIndex])):
             #Extract the data
             dataSubstring = lines[lineIndex].split(',')
+            bandwidth, resolution, codecs, video, url = "","","","",""
             for dataIndex in range(len(dataSubstring)):
               dataObject = dataSubstring[dataIndex].split(':')
               print('dataObject %s' % dataObject)
               print('dataObject[videoNamesIndex] ==== %s' % dataObject[0])
               
-              bandwidth, resolution, codecs, video, url = "","","","",""
               
-              if('BANDWIDTH' in str(dataSubstring[dataIndex])):
+              
+              if('BANDWIDTH' in dataObject[0]):
                 bandwidth = (dataObject[0].split('=')[1])
                 print('BANDWIDTH value: %s' % (dataObject[0].split('=')[1]))
-              elif('RESOLUTION' in str(dataSubstring[dataIndex])):                
+              if('RESOLUTION' in dataObject[0]):                
                 resolution = (dataObject[0].split('=')[1])
                 print('RESOLUTION value: %s' % (dataObject[0].split('=')[1]))
-              elif('CODECS' in str(dataSubstring[dataIndex])):            
+              if('CODECS' in dataObject[0]):            
                 codecs = (dataObject[0].split('=')[1])
                 print('CODECS value: %s' % (dataObject[0].split('=')[1]))
-              elif('VIDEO' in str(dataSubstring[dataIndex])):             
+              elif('VIDEO' in dataObject[0]):             
                 video = (dataObject[0].split('=')[1])
                 print('VIDEO value: %s' % (dataObject[0].split('=')[1]))
-              
-              
+
               print('Checking next url line: %s' % lines[lineIndex+self.urlOffset])
               if( 'http://' in str(lines[lineIndex+self.urlOffset])):
                 print('Grabbing url part: %s' % lines[lineIndex+self.urlOffset])
@@ -217,7 +217,7 @@ class m3u8_playlist():
     chuncked['RESOLUTION'] = '852x480'
     chuncked['CODECS'] = 'avc1.77.30,mp4a.40.2'
     chuncked['VIDEO'] = 'medium'''
-    print(self.streams)
+    print("The 'Chunked' stream is:",self.streams[0].url)
         
 
 class m3u8_Parser():
