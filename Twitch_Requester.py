@@ -59,25 +59,9 @@ class m3u8_playlist(streamObject):
     self.urlOffset = 1
     
     self.videoNames = [ 'chunked', 'high_720p60', 'high_720p30', 'med_480p30' , 'low_360p30', 'mob_160p30', 'audio_only' ]
-    #init the objects
-    '''
-     #EXT-X-TWITCH-INFO:
-    
-     #EXT-X-MEDIA:TYPE=VIDEO,GROUP-ID="medium",NAME="Medium",AUTOSELECT=YES,DEFAULT=YES 
-     #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=992000,RESOLUTION=852x480,CODECS="avc1.77.30,mp4a.40.2",VIDEO="medium"
-     url-link
-     
-     bandwidth, resolution, codecs, video
-     
-    '''
+
     self.baseData = data
-    
-    
-        
-      
-    
-    '''self.streamResObject = {'video':None,'bandwidth':None,'resolution':None, 'codecs':None, 'url':None}'''
-    
+   
     self.chunked = None
     self.high_720p60 = None
     self.high_720p30 = None
@@ -89,7 +73,6 @@ class m3u8_playlist(streamObject):
     self.streams = [ self.chunked, self.high_720p60, self.high_720p30, self.med_480p30, self.low_360p30, self.mob_160p30, self.audio_only ]
     
     '''
-    
     Format:
     - #EXTM3U
     - #EXT-X-TWITCH-INFO:NODE [1]
@@ -101,18 +84,6 @@ class m3u8_playlist(streamObject):
     - #EXT-X-STREAM-INF:PROGRAM-ID=1 [2]
     - URL data [2]
     - ...
-    
-    
-    
-    -> check for front of string line:
-    #EXT-X-MEDIA:TYPE=VIDEO,GROUP-ID="medium",NAME="Medium",AUTOSELECT=YES,DEFAULT=YES
-    --> check #EXT-X-MEDIA:TYPE=VIDEO part
-    
-    -> Then grab next line with data
-    #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=992000,RESOLUTION=852x480,CODECS="avc1.77.30,mp4a.40.2",VIDEO="medium"
-    --> Craete object with data
-    
-    -> Then Grab next line as url link
     '''
     
     
@@ -130,17 +101,11 @@ class m3u8_playlist(streamObject):
       tempValue = lines[lineIndex].split(',')
       line_loop_count += 1
       #The lines are now split
-      #if('#EXT-X-TWITCH-INFO:NODE=' in str(lines[lineIndex].split(','))):
-        #ignore first line
-        #print(lines[lineIndex])
-      #  print('#EXT-X-TWITCH-INFO:')
-      #for videoNamesIndex in range(len(self.videoNames)):
         
       if ('#EXT-X-MEDIA:TYPE=VIDEO' in str(lines[lineIndex])):
         #ignore first linesplitData[lineIndex]):
         #Grab the next 3 lines as one.
         nameValue = lines[lineIndex].split(',')[1]
-        #value = nameValue.find('"',0)
         nameString = nameValue[nameValue.find('"')+1:len(nameValue)-1]
         if('_' in str(self.videoNames[videoNamesIndex]) ):
           #No perfect match so split
@@ -187,30 +152,13 @@ class m3u8_playlist(streamObject):
               new_stream.bandwidth = bandwidth
               new_stream.resolution = resolution
               new_stream.codecs = codecs
-              new_stream.url = url'''
-                
-          '''else:
-            print("Error: Not expected m3u8 line! \n"+lines[lineIndex+self.resOffset])'''
+              new_stream.url = url
+            '''
           
           if videoNamesIndex < len(self.videoNames)-1:
             videoNamesIndex = videoNamesIndex+1
             print('videoNamesIndex index is now %d' % videoNamesIndex)
-        #print(lines[x])
         
-        #x+=3
-        
-      
-    
-    '''print('######################')
-    print(lines[0])
-    print(lines[1])
-    ##EXT-X-TWITCH-INFO:    
-    
-    
-    chuncked['BANDWIDTH'] = 992000
-    chuncked['RESOLUTION'] = '852x480'
-    chuncked['CODECS'] = 'avc1.77.30,mp4a.40.2'
-    chuncked['VIDEO'] = 'medium'''
     print(self.streams[1])
  
 class m3u8_Parser():
@@ -259,9 +207,6 @@ def m3u8_parser_Media_Ext(lines, index):
     if z < len(self.videoNames)-1:
       z = z+1
     print('Z index is now %d' % z)
-    #print(lines[x])
-    
-    #x+=3
     
   return nextMediaObject
 
@@ -337,12 +282,7 @@ def request_m3u8_Playlist(channelName,token,sig,clientID, debug):
   data = response.text
   playlist = m3u8_playlist(data)
   playlist.parse_Playlist()
-  '''lines = data.split('\n')
-  print('######################')
-  print(lines[0])
-  print(lines[1])
-  ##EXT-X-TWITCH-INFO:'''
-  #jsonData = response.json()   
+ 
 
 #Setting the constants and lists
 
