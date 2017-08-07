@@ -34,7 +34,8 @@ class streamObject(object):
     return 'streamObject( %s, %s, %s, %s, %s' % (self.video,self.bandwidth, self.resolution, self.codecs, self.url)
   
   def __str__(self):
-      return 'video:%s, bandwidth:%s, resolution:%s, codecs:%s, url:%s' % (self.video,self.bandwidth, self.resolution, self.codecs, self.url)  
+    logging.debug(self.video)
+    return '[video:%s, bandwidth:%s, resolution:%s, codecs:%s, url:%s]' % (self.video,self.bandwidth, self.resolution, self.codecs, self.url)  
 
 
 class m3u8_playlist(streamObject):
@@ -70,12 +71,16 @@ class m3u8_playlist(streamObject):
     - URL data [2]
     - ...
     '''
+  def __str__(self):
+    returned_string = ""
+    for stream in self.streams :      
+      returned_string += str(stream)+"\n"
+    return returned_string
     
     
   def parse_Playlist(self, debug=False):
     #do things
-    if debug:
-      print('starting playlist extraction!')
+    logging.info('starting playlist extraction!')
     #Grab all lines and hold in a list
     lines = self.baseData.split('\n')
     '''
@@ -112,33 +117,27 @@ class m3u8_playlist(streamObject):
               line_loop_count += 1
               if 'BANDWIDTH' in dataSubstring[dataIndex] :
                 bandwidth = dataObject[0].split('=')[1]
-                if debug:
-                  print('BANDWIDTH value: %s' % (dataObject[0].split('=')[1]))
+                logging.debug('BANDWIDTH value: %s' % (dataObject[0].split('=')[1]))
               elif 'RESOLUTION' in dataSubstring[dataIndex]:                
                 resolution = (dataObject[0].split('=')[1])
-                if debug:
-                  print('RESOLUTION value: %s' % (dataObject[0].split('=')[1]))
+                logging.debug('RESOLUTION value: %s' % (dataObject[0].split('=')[1]))
               elif 'CODECS' in dataSubstring[dataIndex] :            
                 codecs = (dataObject[0].split('=')[1])
-                if debug:
-                  print('CODECS value: %s' % (dataObject[0].split('=')[1]))
+                logging.debug('CODECS value: %s' % (dataObject[0].split('=')[1]))
               elif 'VIDEO' in dataSubstring[dataIndex]:             
                 video = (dataObject[0].split('=')[1])
-                if debug:
-                  print('VIDEO value: %s' % (dataObject[0].split('=')[1]))
+                logging.debug('VIDEO value: %s' % (dataObject[0].split('=')[1]))
                 break
              
               elif( 'http://' in str(lines[lineIndex+self.urlOffset])):
-                if debug:
-                  print('Grabbing url part: %s' % lines[lineIndex+self.urlOffset])
+                logging.debug('Grabbing url part: %s' % lines[lineIndex+self.urlOffset])
                 url = lines[lineIndex+self.urlOffset]
-                
-            if debug:       
-              print("<< Video: ",video,' Bandwidth: ',bandwidth,' Resolution: ',resolution,' Codecs: ',codecs,' Url: ',url,' >>')
+                       
+            logging.debug("<< Video: ",video,' Bandwidth: ',bandwidth,' Resolution: ',resolution,' Codecs: ',codecs,' Url: ',url,' >>')
             new_Stream = streamObject(video,bandwidth,resolution,codecs,url)
             self.streams[videoNamesIndex] = new_Stream
-            if debug:
-              print('Video stream <%s> has been grabbed!' % (self.videoNames[videoNamesIndex]))
+
+            logging.info('Video stream <%s> has been grabbed!' % (self.videoNames[videoNamesIndex]))
             #video,bandwidth,resolution,codecs,url
             '''new_stream.video = video
               new_stream.bandwidth = bandwidth
@@ -149,10 +148,8 @@ class m3u8_playlist(streamObject):
           
           if videoNamesIndex < len(self.videoNames)-1:
             videoNamesIndex = videoNamesIndex+1
-            if debug:
-              print('videoNamesIndex index is now %d' % videoNamesIndex)
-    if debug:    
-      print(self.streams[1])
+          logging.debug('videoNamesIndex index is now %d' % videoNamesIndex)    
+    logging.debug(self.streams[1])
 
 class twitch_session(object):
   
@@ -173,8 +170,7 @@ class twitch_session(object):
     
     
     request_URL = "https://api.twitch.tv/kraken/games/top?limit={}&client_id={}".format(self.resultsLimit, self.clientID )
-    if debug:
-      print(request_URL)
+    logging.debug(request_URL)
     response = requests.get(request_URL)
     jsonData = response.json()
     
@@ -182,10 +178,8 @@ class twitch_session(object):
       number = (x+1)
       game_Name = jsonData['top'][x]['game']['name']
       self.game_list.insert(x,game_Name)
-      if debug:
-        print('%s is number: %d in the list' % (self.game_list[x],number))
-    if debug:
-      print('The gamesList holds %d game names' % (len(self.game_list)))
+      logging.info('%s is number: %d in the list' % (self.game_list[x],number))
+      logging.info('The gamesList holds %d game names' % (len(self.game_list)))
 
   def request_TopChannels_ByGame(self,gameName,debug=False):
     '''
@@ -196,8 +190,7 @@ class twitch_session(object):
        -name
     '''
     request_URL = "https://api.twitch.tv/kraken/streams/?game={}&limit={}&client_id={}".format(gameName,self.resultsLimit, self.clientID )
-    if debug:
-      print(request_URL)
+    logging.debug(request_URL)
     response = requests.get(request_URL)
     jsonData = response.json()
     
@@ -205,8 +198,7 @@ class twitch_session(object):
       number = x+1
       channel = jsonData['streams'][x]['channel']['name']
       self.stream_list.insert(x,channel)
-      if debug:
-        print('%s is number: %d in the list' % (self.stream_list[x],number)) 
+      logging.debug('%s is number: %d in the list' % (self.stream_list[x],number)) 
 
 
   def request_Channel(self,channelName, debug=False):
@@ -219,30 +211,29 @@ class twitch_session(object):
     '''
     #Example url: http://api.twitch.tv/api/channels/{channel}/access_token
     request_URL = "http://api.twitch.tv/api/channels/{}/access_token?client_id={}".format(channelName,self.clientID)
-    if debug:
-      print(request_URL)
+    logging.debug(request_URL)
     response = requests.get(request_URL)
     jsonData = response.json() 
     self.token = jsonData['token']
-    self.sig = jsonData['sig']
-    if debug:  
-      print(jsonData)
-      print('token is: %s' % self.token)
-      print('sig is: %s' % self.sig)
+    self.sig = jsonData['sig']  
+    logging.debug(jsonData)
+    logging.info('token is: %s' % self.token)
+    logging.info('sig is: %s' % self.sig)
     
-    self.request_m3u8_Playlist(channelName, debug=False)
+    return self.request_m3u8_Playlist(channelName, debug=False)
 
   def request_m3u8_Playlist(self,channelName, debug=False):
     request_URL = 'http://usher.twitch.tv/api/channel/hls/{}.m3u8?player=twitchweb&token={}&sig={}&allow_audio_only=true&allow_source=true&type=any&p=9333029'.format(channelName,self.token,self.sig)
     response = requests.get(request_URL)
-    if debug:  
-      print(request_URL)
-      print(response.text+'\n=================================')
+    
+    logging.debug(request_URL)
+    logging.debug(response.text+'\n=================================')
       
     '''This request returns a m3u8 playlist file with stream link and res info data'''
     data = response.text
     self.playlist = m3u8_playlist(data)
     self.playlist.parse_Playlist(True)
+    return self.playlist
  
 '''
 Setting up the logging level for the application/dubug session
@@ -259,7 +250,7 @@ Can toggle using:
 
 level=logging.DEBUG etc
 '''
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 #Setting the constants and lists
 
