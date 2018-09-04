@@ -21,6 +21,13 @@ import json
 import logging, sys
 
 
+
+class ClientAuth(requests.auth.AuthBase):
+    def __call__(self,r):
+      r.headers['Client-ID'] = twitchSess.clientID
+      return r
+
+
 class streamObject(object):
 
   def __init__(self, video, bandwidth, resolution, codecs, url):
@@ -166,6 +173,37 @@ class twitch_session(object):
     self.sig_valid = False
     self.m3u8_playlist = None
 
+  def v6_request_From_Twitch(self, debug=False):
+
+    v6_request_URL_Base = "https://api.twitch.tv/helix/"
+
+    Top_Games = "/games/top"
+    defined_URL = v6_request_URL_Base+Top_Games
+    logging.debug(defined_URL)
+    response = requests.get(defined_URL, auth=ClientAuth())
+    jsonData = response.json()
+    print(jsonData)
+    print("Size is "+str(len(jsonData['data'])))
+    list_count = 0
+    for item in jsonData['data']:
+      #Example format is:
+
+      ""
+      {
+        'id': '33214',
+        'name': 'Fortnite',
+        'box_art_url': 'https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-{width}x{height}.jpg'
+      }
+      ""
+
+      number = list_count + 1
+      game_Name = item['name']
+      self.game_list.insert(list_count,game_Name)
+      logging.info('%s is number: %d in the list' % (self.game_list[list_count], number))
+      logging.info('The gamesList holds %d game names' % (len(self.game_list)))
+      list_count +=1
+
+
   def request_From_Twitch(self, debug=False):
     
     
@@ -193,7 +231,7 @@ class twitch_session(object):
     logging.debug(request_URL)
     response = requests.get(request_URL)
     jsonData = response.json()
-    
+    print(request_URL)
     for x in range(len(jsonData['streams'])):
       number = x+1
       channel = jsonData['streams'][x]['channel']['name']
@@ -213,7 +251,8 @@ class twitch_session(object):
     request_URL = "http://api.twitch.tv/api/channels/{}/access_token?client_id={}".format(channelName,self.clientID)
     logging.debug(request_URL)
     response = requests.get(request_URL)
-    jsonData = response.json() 
+    jsonData = response.json()
+    print(jsonData)
     self.token = jsonData['token']
     self.sig = jsonData['sig']  
     logging.debug(jsonData)
@@ -254,13 +293,19 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 #Setting the constants and lists
 
-resultsLimit = 10
+resultsLimit = 10 #This is the max number of returned objects
 
 lastApiCall_time = 0
 
 #Below are the calls to the config file with the app id.
 
-file = open('config.txt')
+try:
+
+  file = open('config.txt')
+except IOError:
+  print("IOError on file: {}".format(file.name))
+
+
 
 id = file.readline().split(':')[1]
 
@@ -269,8 +314,9 @@ twitchSess = twitch_session(id,resultsLimit)
 twitchSess.request_From_Twitch(True)
 
 #Example game to grab streams from: top-most game & top-most channel : index[0]
-print(twitchSess.request_TopChannels_ByGame(twitchSess.game_list[0], True))
-print(twitchSess.request_Channel(twitchSess.stream_list[0],True))
+print(twitchSess.v6_request_From_Twitch())
+#print(twitchSess.request_TopChannels_ByGame(twitchSess.game_list[0], True))
+#print(twitchSess.request_Channel(twitchSess.stream_list[0],True))
 
 
 '''TODO:
