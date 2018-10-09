@@ -158,13 +158,32 @@ class m3u8_playlist(streamObject):
           logging.debug('videoNamesIndex index is now %d' % videoNamesIndex)    
     logging.debug(self.streams[1])
 
+
+class stream_Meta(object):
+  def __init__(self, stream_Metadata ):
+    #Takes jason steam meta data object and extracts values
+    self.channel_id =  stream_Metadata["_id"]
+    self.game = stream_Metadata["game"]
+    self.viewers = stream_Metadata["viewers"]
+    self.video_height = stream_Metadata["video_height"]
+    self.average_fps = stream_Metadata["average_fps"]
+    self.delay = stream_Metadata["delay"]
+    self.created_at = stream_Metadata["created_at"]
+    self.is_playlist = stream_Metadata["is_playlist"]
+    self.stream_type = stream_Metadata["stream_type"]
+    self.sml_preview = stream_Metadata["preview"]["small"]
+    self.med_preview = stream_Metadata["preview"]["medium"]
+    self.lrg_preview = stream_Metadata["preview"]["large"]
+    self.tmp_preview = stream_Metadata["preview"]["template"]
+
+
 class twitch_session(object):
   
   def __init__(self, clientID, resultsLimit):
     self.last_call = ''
     self.time_limit = 60 #The min time between calls to reload list
-    self.game_list = [None] * resultsLimit
-    self.stream_list = [None] * resultsLimit
+    self.game_list = []
+    self.stream_list = {}
     self.clientID = clientID
     self.resultsLimit = resultsLimit
     self.token = None
@@ -198,7 +217,7 @@ class twitch_session(object):
 
       number = list_count + 1
       game_Name = item['name']
-      self.game_list.insert(list_count,game_Name)
+      self.game_list.append(game_Name)
       logging.info('%s is number: %d in the list' % (self.game_list[list_count], number))
       logging.info('The gamesList holds %d game names' % (len(self.game_list)))
       list_count +=1
@@ -232,12 +251,21 @@ class twitch_session(object):
     response = requests.get(request_URL)
     jsonData = response.json()
     print(request_URL)
+    #print(jsonData)
     for x in range(len(jsonData['streams'])):
       number = x+1
       channel = jsonData['streams'][x]['channel']['name']
-      self.stream_list.insert(x,channel)
-      logging.debug('%s is number: %d in the list' % (self.stream_list[x],number)) 
+      self.stream_list[channel] = stream_Meta(jsonData['streams'][x])
+      #logging.debug('%s is number: %d in the list' % (self.stream_list[x],number))
 
+    count = 0
+    for item in self.stream_list:
+      name = item
+      value = self.stream_list.get(name)
+      viewers = value.viewers
+      print("Channel {0:20} id: {1:13} has {2:7} views".format(name, value.channel_id, viewers))
+      #print
+      count += 1
 
   def request_Channel(self,channelName, debug=False):
     '''
@@ -306,16 +334,31 @@ except IOError:
   print("IOError on file: {}".format(file.name))
 
 
+#resultsLimit = 20
 
 id = file.readline().split(':')[1]
 
 #Create a new twitch_Session object
 twitchSess = twitch_session(id,resultsLimit)
-twitchSess.request_From_Twitch(True)
+#twitchSess.request_From_Twitch(True)
 
 #Example game to grab streams from: top-most game & top-most channel : index[0]
-print(twitchSess.v6_request_From_Twitch())
-#print(twitchSess.request_TopChannels_ByGame(twitchSess.game_list[0], True))
+twitchSess.v6_request_From_Twitch()
+
+"""
+Testing resulting List for returned data!
+"""
+gameListCopy = twitchSess.game_list
+index = 0
+for game in gameListCopy:
+  print("Index: %d holds game: %s" % (index, game))
+  index += 1
+
+#print ("%r" % gameListCopy)
+
+print("=" * 25)
+
+twitchSess.request_TopChannels_ByGame(twitchSess.game_list[0], True)
 #print(twitchSess.request_Channel(twitchSess.stream_list[0],True))
 
 
