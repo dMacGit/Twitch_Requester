@@ -158,11 +158,37 @@ class m3u8_playlist(streamObject):
           logging.debug('videoNamesIndex index is now %d' % videoNamesIndex)    
     logging.debug(self.streams[1])
 
+class user_Meta(object):
+  def __init__(self, user_Metadata ):
+    #Takes jason user meta data object and extracts values
+    self.user_id =  user_Metadata["id"]
+    self.login_name = user_Metadata["login"]
+    self.display_name = user_Metadata["display_name"]
+    self.type = user_Metadata["type"]
+    self.broadcaster_type = user_Metadata["broadcaster_type"]
+    self.description = user_Metadata["description"]
+    self.profile_image_url = user_Metadata["profile_image_url"]
+    self.offline_image_url = user_Metadata["offline_image_url"]
+    self.view_count = user_Metadata["view_count"]
+    self.email = user_Metadata["email"]
+
+class live_stream_Meta(object):
+  def __init__(self, live_Metadata ):
+    #Takes jason live steam meta data object and extracts values
+    self.stream_id =  live_Metadata["id"]
+    self.user_id = live_Metadata["user_id"]
+    self.game_id = live_Metadata["game_id"]
+    self.type = live_Metadata["type"]
+    self.title = live_Metadata["title"]
+    self.viewer_count = live_Metadata["viewer_count"]
+    self.started_at = live_Metadata["started_at"]
+    self.lang = live_Metadata["language"]
+    self.thumbnail_url = live_Metadata["thumbnail_url"]
 
 class stream_Meta(object):
   def __init__(self, stream_Metadata ):
     #Takes jason steam meta data object and extracts values
-    self.channel_id =  stream_Metadata["_id"]
+    self.stream_id =  stream_Metadata["_id"]
     self.game = stream_Metadata["game"]
     self.viewers = stream_Metadata["viewers"]
     self.video_height = stream_Metadata["video_height"]
@@ -176,13 +202,15 @@ class stream_Meta(object):
     self.lrg_preview = stream_Metadata["preview"]["large"]
     self.tmp_preview = stream_Metadata["preview"]["template"]
 
+    self.channel = stream_Metadata["channel"]
+
 
 class twitch_session(object):
   
   def __init__(self, clientID, resultsLimit):
     self.last_call = ''
     self.time_limit = 60 #The min time between calls to reload list
-    self.game_list = []
+    self.game_list = {}
     self.stream_list = {}
     self.clientID = clientID
     self.resultsLimit = resultsLimit
@@ -217,8 +245,9 @@ class twitch_session(object):
 
       number = list_count + 1
       game_Name = item['name']
-      self.game_list.append(game_Name)
-      logging.info('%s is number: %d in the list' % (self.game_list[list_count], number))
+      game_ID = item['id']
+      self.game_list[game_Name] = game_ID
+      logging.info('%s is number: %d in the list' % (game_Name, number))
       logging.info('The gamesList holds %d game names' % (len(self.game_list)))
       list_count +=1
 
@@ -238,7 +267,7 @@ class twitch_session(object):
       logging.info('%s is number: %d in the list' % (self.game_list[x],number))
       logging.info('The gamesList holds %d game names' % (len(self.game_list)))
 
-  def request_TopChannels_ByGame(self,gameName,debug=False):
+  def request_TopChannels_ByGame(self,gameName,gameID,debug=False):
     '''
     Returned json structure:
     -Streams [0 - limit]
@@ -246,28 +275,43 @@ class twitch_session(object):
       -channel
        -name
     '''
-    request_URL = "https://api.twitch.tv/kraken/streams/?game={}&limit={}&client_id={}".format(gameName,self.resultsLimit, self.clientID )
+    request_URL = "https://api.twitch.tv/helix/streams/?game_id={}&limit={}".format(gameID,self.resultsLimit)
+    user_data_URL = 'https://api.twitch.tv/helix/users?id='
     logging.debug(request_URL)
-    response = requests.get(request_URL)
+    response = requests.get(request_URL, auth=ClientAuth())
     jsonData = response.json()
     print(request_URL)
-    #print(jsonData)
-    for x in range(len(jsonData['streams'])):
+    print(jsonData)
+    for x in range(len(jsonData['data'])):
       number = x+1
-      channel = jsonData['streams'][x]['channel']['name']
-      self.stream_list[channel] = stream_Meta(jsonData['streams'][x])
-      #logging.debug('%s is number: %d in the list' % (self.stream_list[x],number))
+      steam_data = jsonData['data'][x]
+      steam_id = steam_data["id"]
+      user_id = steam_data["user_id"]
+      steam_type = steam_data["type"]
+      stream_title = steam_data["title"]
+
+      userData_response = requests.get(user_data_URL+user_id, auth=ClientAuth())
+      userJsonResponse = userData_response.json()
+#      print(userData_response)
+      channel_name = userJsonResponse['data'][0]["login"]
+      self.stream_list[channel_name] = live_stream_Meta(jsonData['data'][x])
+      logging.debug('%s is number: %d in the list' % (channel_name,number))
 
     count = 0
+    lastChannelID = ""
     for item in self.stream_list:
+      print(item)
       name = item
       value = self.stream_list.get(name)
-      viewers = value.viewers
-      print("Channel {0:20} id: {1:13} has {2:7} views".format(name, value.channel_id, viewers))
+      viewers = value.viewer_count
+      lastChannelID = self.request_Channel(value.user_id)
+      print("Channel {0:20} id: {1:13} has {2:7} views".format(name, value.user_id, viewers))
       #print
       count += 1
 
-  def request_Channel(self,channelName, debug=False):
+
+
+  def request_Channel(self,channelID, debug=False):
     '''
     Example response:
     -Token
@@ -276,18 +320,18 @@ class twitch_session(object):
     -Mobile restricted
     '''
     #Example url: http://api.twitch.tv/api/channels/{channel}/access_token
-    request_URL = "http://api.twitch.tv/api/channels/{}/access_token?client_id={}".format(channelName,self.clientID)
+    request_URL = "https://api.twitch.tv/kraken/channels/{}/".format(channelID)
     logging.debug(request_URL)
     response = requests.get(request_URL)
     jsonData = response.json()
     print(jsonData)
-    self.token = jsonData['token']
-    self.sig = jsonData['sig']  
+    """self.token = jsonData['token']
+    self.sig = jsonData['sig']
     logging.debug(jsonData)
     logging.info('token is: %s' % self.token)
     logging.info('sig is: %s' % self.sig)
     
-    return self.request_m3u8_Playlist(channelName, debug=False)
+    return self.request_m3u8_Playlist(channelName, debug=False)"""
 
   def request_m3u8_Playlist(self,channelName, debug=False):
     request_URL = 'http://usher.twitch.tv/api/channel/hls/{}.m3u8?player=twitchweb&token={}&sig={}&allow_audio_only=true&allow_source=true&type=any&p=9333029'.format(channelName,self.token,self.sig)
@@ -358,7 +402,13 @@ for game in gameListCopy:
 
 print("=" * 25)
 
-twitchSess.request_TopChannels_ByGame(twitchSess.game_list[0], True)
+for key in twitchSess.game_list.keys():
+  print("Key: {0} is {1}".format(key,twitchSess.game_list.get(key)))
+
+#Grab first key (Game ID)
+first_Game_ID = next(iter(twitchSess.game_list.values()))
+
+twitchSess.request_TopChannels_ByGame(None,first_Game_ID, True)
 #print(twitchSess.request_Channel(twitchSess.stream_list[0],True))
 
 
