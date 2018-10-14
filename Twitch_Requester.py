@@ -185,7 +185,54 @@ class live_stream_Meta(object):
     self.lang = live_Metadata["language"]
     self.thumbnail_url = live_Metadata["thumbnail_url"]
 
-class stream_Meta(object):
+class returned_stream_Meta_Object(object):
+  def __init__(self, returned_Stream):
+    self.live_id = returned_Stream["_id"]
+    self.average_fps = returned_Stream["average_fps"]
+
+
+
+    self.created_at = returned_Stream["created_at"]
+    self.delay = returned_Stream["delay"]
+    self.game = returned_Stream["game"]
+    self.is_playlist = returned_Stream["is_playlist"]
+
+    self.lrg_preview = returned_Stream["preview"]["large"]
+    self.med_preview = returned_Stream["preview"]["medium"]
+    self.sml_preview = returned_Stream["preview"]["small"]
+    self.tmp_preview = returned_Stream["preview"]["template"]
+
+    self.video_height = returned_Stream["video_height"]
+    self.viewers = returned_Stream["viewers"]
+
+    def get_Channel_Info(self):
+      return self.channel_info(self)
+
+    class channel_info(object):
+      def __init__(self, channel_data):
+
+        self.channel_id = channel_data["_id"]
+        self.broadcaster_language = channel_data["broadcaster_language"]
+        self.created_at = channel_data["created_at"]
+        self.display_name = channel_data["display_name"]
+        self.followers = channel_data["followers"]
+        self.game = channel_data["game"]
+        self.language = channel_data["language"]
+        self.logo = channel_data["logo"]
+        self.mature = channel_data["mature"]
+        self.name = channel_data["name"]
+        self.partner = channel_data["partner"]
+        self.profile_banner = channel_data["profile_banner"]
+        self.profile_banner_background_color = channel_data["profile_banner_background_color"]
+        self.status = channel_data["status"]
+        self.updated_at = channel_data["updated_at"]
+        self.url = channel_data["url"]
+        self.video_banner = channel_data["video_banner"]
+        self.views = channel_data["views"]
+
+    self.channel = channel_info(returned_Stream["channel"])
+
+class live_stream_Info(object):
   def __init__(self, stream_Metadata ):
     #Takes jason steam meta data object and extracts values
     self.stream_id =  stream_Metadata["_id"]
@@ -202,7 +249,28 @@ class stream_Meta(object):
     self.lrg_preview = stream_Metadata["preview"]["large"]
     self.tmp_preview = stream_Metadata["preview"]["template"]
 
-    self.channel = stream_Metadata["channel"]
+    self.channel = self.channel_Meta(stream_Metadata["channel"])
+
+    class channel_Meta(object):
+      def __init__(self, channel_Metadata):
+        self.mature = channel_Metadata["mature"]
+        self.status = channel_Metadata["mature"]
+        self.broadcaster_language = channel_Metadata["broadcaster_language"]
+        self.display_name = channel_Metadata["display_name"]
+        self.game = channel_Metadata["game"]
+        self.language = channel_Metadata["language"]
+        self._id = channel_Metadata["_id"]
+        self.name = channel_Metadata["name"]
+        self.created_at = channel_Metadata["created_at"]
+        self.updated_at = channel_Metadata["updated_at"]
+        self.partner = channel_Metadata["partner"]
+        self.logo = channel_Metadata["logo"]
+        self.video_banner = channel_Metadata["video_banner"]
+        self.profile_banner = channel_Metadata["profile_banner"]
+        self.profile_banner_background_color = channel_Metadata["profile_banner_background_color"]
+        self.url = channel_Metadata["url"]
+        self.views = channel_Metadata["views"]
+        self.followers = channel_Metadata["followers"]
 
 
 class twitch_session(object):
@@ -220,12 +288,12 @@ class twitch_session(object):
     self.sig_valid = False
     self.m3u8_playlist = None
 
-  def v6_request_From_Twitch(self, debug=False):
+  def v7_request_From_Twitch(self, debug=False):
 
-    v6_request_URL_Base = "https://api.twitch.tv/helix/"
+    v7_request_URL_Base = "https://api.twitch.tv/helix/"
 
     Top_Games = "/games/top"
-    defined_URL = v6_request_URL_Base+Top_Games
+    defined_URL = v7_request_URL_Base+Top_Games
     logging.debug(defined_URL)
     response = requests.get(defined_URL, auth=ClientAuth())
     jsonData = response.json()
@@ -267,7 +335,13 @@ class twitch_session(object):
       logging.info('%s is number: %d in the list' % (self.game_list[x],number))
       logging.info('The gamesList holds %d game names' % (len(self.game_list)))
 
-  def request_TopChannels_ByGame(self,gameName,gameID,debug=False):
+  def request_user_Data(self, userID):
+    user_data_URL = 'https://api.twitch.tv/helix/users?id='
+    userData_response = requests.get(user_data_URL + userID, auth=ClientAuth())
+    userJsonResponse = userData_response.json()
+    channel_name = userJsonResponse['data'][0]["login"]
+
+  def v7_request_TopChannels_ByGame(self,gameName,gameID,debug=False):
     '''
     Returned json structure:
     -Streams [0 - limit]
@@ -276,7 +350,7 @@ class twitch_session(object):
        -name
     '''
     request_URL = "https://api.twitch.tv/helix/streams/?game_id={}&limit={}".format(gameID,self.resultsLimit)
-    user_data_URL = 'https://api.twitch.tv/helix/users?id='
+
     logging.debug(request_URL)
     response = requests.get(request_URL, auth=ClientAuth())
     jsonData = response.json()
@@ -290,26 +364,64 @@ class twitch_session(object):
       steam_type = steam_data["type"]
       stream_title = steam_data["title"]
 
-      userData_response = requests.get(user_data_URL+user_id, auth=ClientAuth())
-      userJsonResponse = userData_response.json()
+
 #      print(userData_response)
-      channel_name = userJsonResponse['data'][0]["login"]
-      self.stream_list[channel_name] = live_stream_Meta(jsonData['data'][x])
-      logging.debug('%s is number: %d in the list' % (channel_name,number))
+
+      self.stream_list[user_id] = live_stream_Meta(jsonData['data'][x])
+      logging.debug('%s is number: %d in the list' % (user_id,number))
 
     count = 0
     lastChannelID = ""
     for item in self.stream_list:
-      print(item)
+      #print(item)
       name = item
       value = self.stream_list.get(name)
       viewers = value.viewer_count
-      lastChannelID = self.request_Channel(value.user_id)
+      #lastChannelID = self.request_Channel(value.user_id)
       print("Channel {0:20} id: {1:13} has {2:7} views".format(name, value.user_id, viewers))
       #print
       count += 1
 
+  def v5_request_TopChannels_ByGame(self, gameName, debug=False):
+    '''
+    Returned json structure:
+    -Streams [0 - limit]
+     -[0]
+      -channel
+       -name
+    '''
+    request_URL = "https://api.twitch.tv/kraken/streams/?game={}&limit={}".format(gameName, self.resultsLimit)
 
+    logging.debug(request_URL)
+    response = requests.get(request_URL, auth=ClientAuth())
+    jsonData = response.json()
+    print(request_URL)
+    print(jsonData)
+    for x in range(len(jsonData['streams'])):
+      number = x + 1
+      steam_data = jsonData['streams'][x]
+      steam_id = steam_data["_id"]
+      user_id = steam_data["channel"]["_id"]
+      user_name = steam_data["channel"]["name"]
+      stream_title = steam_data["channel"]["status"]
+      live_url = steam_data["channel"]["url"]
+
+      #      print(userData_response)
+
+      self.stream_list[user_name] = returned_stream_Meta_Object(jsonData['streams'][x])
+      logging.debug('%s is number: %d in the list' % (user_name, number))
+
+    count = 0
+    lastChannelID = ""
+    for item in self.stream_list:
+      # print(item)
+      name = item
+      value = self.stream_list.get(name)
+      viewers = value.viewers
+      # lastChannelID = self.request_Channel(value.user_id)
+      print("Channel {0:20} id: {1:13} has {2:7} views".format(name, value.channel.channel_id, viewers))
+      # print
+      count += 1
 
   def request_Channel(self,channelID, debug=False):
     '''
@@ -320,9 +432,11 @@ class twitch_session(object):
     -Mobile restricted
     '''
     #Example url: http://api.twitch.tv/api/channels/{channel}/access_token
-    request_URL = "https://api.twitch.tv/kraken/channels/{}/".format(channelID)
+    request_URL = "https://api.twitch.tv/kraken/streams/{}".format(channelID)
+    print(request_URL)
     logging.debug(request_URL)
-    response = requests.get(request_URL)
+    response = requests.get(request_URL, auth=ClientAuth())
+
     jsonData = response.json()
     print(jsonData)
     """self.token = jsonData['token']
@@ -387,7 +501,7 @@ twitchSess = twitch_session(id,resultsLimit)
 #twitchSess.request_From_Twitch(True)
 
 #Example game to grab streams from: top-most game & top-most channel : index[0]
-twitchSess.v6_request_From_Twitch()
+twitchSess.v7_request_From_Twitch()
 
 """
 Testing resulting List for returned data!
@@ -406,10 +520,14 @@ for key in twitchSess.game_list.keys():
   print("Key: {0} is {1}".format(key,twitchSess.game_list.get(key)))
 
 #Grab first key (Game ID)
-first_Game_ID = next(iter(twitchSess.game_list.values()))
+first_Game_ID = next(iter(twitchSess.game_list.keys()))
+print(first_Game_ID)
 
-twitchSess.request_TopChannels_ByGame(None,first_Game_ID, True)
-#print(twitchSess.request_Channel(twitchSess.stream_list[0],True))
+twitchSess.v5_request_TopChannels_ByGame(first_Game_ID, True)
+
+#Grab first key (Game ID)
+first_liveStream_ID = next(iter(twitchSess.stream_list.values()))
+twitchSess.request_Channel(first_liveStream_ID.channel.name,True)
 
 
 '''TODO:
