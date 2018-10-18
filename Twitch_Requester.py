@@ -1,4 +1,3 @@
-
 '''
 =================================================
 This is a test application joining learning python
@@ -11,23 +10,21 @@ If no app id, throws 404 error on calling url request.
 
 Plans for this application include:
 - Reqesting specific top channels of a game type
-- Returning the m3u8 playlist data
-- Loading up the m3u8 steam and playing it.
+- Returning the m3u8 playlist data // Not Currently Supported in API
+- Loading up the m3u8 steam and playing it // Not Currently Supported in API
 '''
 
 import requests
-import json
 # Adding logging to help toggle debug info
 import logging, sys
 
-
-
+""" Helper object to set request headers with Client ID"""
 class ClientAuth(requests.auth.AuthBase):
     def __call__(self,r):
       r.headers['Client-ID'] = twitchSess.clientID
       return r
 
-
+""" Deprecated class: This class was used before API was updated. M3U8 and HLS playlist are now unsupported."""
 class streamObject(object):
 
   def __init__(self, video, bandwidth, resolution, codecs, url):
@@ -44,7 +41,7 @@ class streamObject(object):
     logging.debug(self.video)
     return '[video:%s, bandwidth:%s, resolution:%s, codecs:%s, url:%s]' % (self.video,self.bandwidth, self.resolution, self.codecs, self.url)  
 
-
+""" Deprecated class: This class was used before API was updated. M3U8 and HLS playlist are now unsupported."""
 class m3u8_playlist(streamObject):
 
   def __init__(self,data):
@@ -158,9 +155,9 @@ class m3u8_playlist(streamObject):
           logging.debug('videoNamesIndex index is now %d' % videoNamesIndex)    
     logging.debug(self.streams[1])
 
+""" User data object for holding base user info: GET https://api.twitch.tv/helix/users"""
 class user_Meta(object):
   def __init__(self, user_Metadata ):
-    #Takes jason user meta data object and extracts values
     self.user_id =  user_Metadata["id"]
     self.login_name = user_Metadata["login"]
     self.display_name = user_Metadata["display_name"]
@@ -172,6 +169,7 @@ class user_Meta(object):
     self.view_count = user_Metadata["view_count"]
     self.email = user_Metadata["email"]
 
+""" Stream data object for holding current live stream info: GET https://api.twitch.tv/helix/streams"""
 class live_stream_Meta(object):
   def __init__(self, live_Metadata ):
     #Takes jason live steam meta data object and extracts values
@@ -185,23 +183,19 @@ class live_stream_Meta(object):
     self.lang = live_Metadata["language"]
     self.thumbnail_url = live_Metadata["thumbnail_url"]
 
+""" [New API] """
 class returned_stream_Meta_Object(object):
   def __init__(self, returned_Stream):
     self.live_id = returned_Stream["_id"]
     self.average_fps = returned_Stream["average_fps"]
-
-
-
     self.created_at = returned_Stream["created_at"]
     self.delay = returned_Stream["delay"]
     self.game = returned_Stream["game"]
     self.is_playlist = returned_Stream["is_playlist"]
-
     self.lrg_preview = returned_Stream["preview"]["large"]
     self.med_preview = returned_Stream["preview"]["medium"]
     self.sml_preview = returned_Stream["preview"]["small"]
     self.tmp_preview = returned_Stream["preview"]["template"]
-
     self.video_height = returned_Stream["video_height"]
     self.viewers = returned_Stream["viewers"]
 
@@ -232,9 +226,9 @@ class returned_stream_Meta_Object(object):
 
     self.channel = channel_info(returned_Stream["channel"])
 
+""" [V5 API] Stream data object for specified channel: GET https://api.twitch.tv/kraken/streams/<channel ID>"""
 class live_stream_Info(object):
   def __init__(self, stream_Metadata ):
-    #Takes jason steam meta data object and extracts values
     self.stream_id =  stream_Metadata["_id"]
     self.game = stream_Metadata["game"]
     self.viewers = stream_Metadata["viewers"]
@@ -272,12 +266,17 @@ class live_stream_Info(object):
         self.views = channel_Metadata["views"]
         self.followers = channel_Metadata["followers"]
 
+""" Main object class to maintain current session info. 
 
+    This is also what holds functions and objects associated with api communications
+    Note: Functions supporting specific api versions are denoted by v<version number>
+    Example: v7 (Newest API version), v5 (Older to be deprecated), v3 (Deprecated)
+"""
 class twitch_session(object):
   
   def __init__(self, clientID, resultsLimit):
     self.last_call = ''
-    self.time_limit = 60 #The min time between calls to reload list
+    self.time_limit = 60  # The min time between calls to reload list
     self.game_list = {}
     self.stream_list = {}
     self.clientID = clientID
@@ -301,15 +300,16 @@ class twitch_session(object):
     print("Size is "+str(len(jsonData['data'])))
     list_count = 0
     for item in jsonData['data']:
-      #Example format is:
 
-      ""
+      # Example format is:
+
+      """
       {
         'id': '33214',
         'name': 'Fortnite',
         'box_art_url': 'https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-{width}x{height}.jpg'
       }
-      ""
+      """
 
       number = list_count + 1
       game_Name = item['name']
@@ -396,7 +396,6 @@ class twitch_session(object):
     response = requests.get(request_URL, auth=ClientAuth())
     jsonData = response.json()
     print(request_URL)
-    print(jsonData)
     for x in range(len(jsonData['streams'])):
       number = x + 1
       steam_data = jsonData['streams'][x]
@@ -431,7 +430,7 @@ class twitch_session(object):
     -Sid
     -Mobile restricted
     '''
-    #Example url: http://api.twitch.tv/api/channels/{channel}/access_token
+    # Example url: http://api.twitch.tv/api/channels/{channel}/access_token
     request_URL = "https://api.twitch.tv/kraken/streams/{}".format(channelID)
     print(request_URL)
     logging.debug(request_URL)
@@ -477,13 +476,13 @@ level=logging.DEBUG etc
 '''
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
-#Setting the constants and lists
+# Setting the constants and lists
 
-resultsLimit = 10 #This is the max number of returned objects
+resultsLimit = 10  # This is the max number of returned objects
 
 lastApiCall_time = 0
 
-#Below are the calls to the config file with the app id.
+# Below are the calls to the config file with the app id.
 
 try:
 
@@ -492,15 +491,15 @@ except IOError:
   print("IOError on file: {}".format(file.name))
 
 
-#resultsLimit = 20
+# resultsLimit = 20
 
 id = file.readline().split(':')[1]
 
-#Create a new twitch_Session object
+# Create a new twitch_Session object
 twitchSess = twitch_session(id,resultsLimit)
-#twitchSess.request_From_Twitch(True)
+# twitchSess.request_From_Twitch(True)
 
-#Example game to grab streams from: top-most game & top-most channel : index[0]
+# Example game to grab streams from: top-most game & top-most channel : index[0]
 twitchSess.v7_request_From_Twitch()
 
 """
@@ -512,20 +511,20 @@ for game in gameListCopy:
   print("Index: %d holds game: %s" % (index, game))
   index += 1
 
-#print ("%r" % gameListCopy)
+# print ("%r" % gameListCopy)
 
 print("=" * 25)
 
 for key in twitchSess.game_list.keys():
   print("Key: {0} is {1}".format(key,twitchSess.game_list.get(key)))
 
-#Grab first key (Game ID)
+# Grab first key (Game ID)
 first_Game_ID = next(iter(twitchSess.game_list.keys()))
 print(first_Game_ID)
 
 twitchSess.v5_request_TopChannels_ByGame(first_Game_ID, True)
 
-#Grab first key (Game ID)
+# Grab first key (Game ID)
 first_liveStream_ID = next(iter(twitchSess.stream_list.values()))
 twitchSess.request_Channel(first_liveStream_ID.channel.name,True)
 
