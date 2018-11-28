@@ -2,7 +2,7 @@
 
 
 # Twitch_Requester
-### Current Release | [![Version](https://img.shields.io/badge/Release-v0.1.1-brightgreen.svg)](https://github.com/dMacGit/Twitch_Requester/releases/tag/v0.1.1)
+### Current Release | [![Version](https://img.shields.io/badge/Release-v0.1.1-brightgreen.svg)](https://github.com/dMacGit/Twitch_Requester/releases/tag/v0.2.0)
 
 *A simple test app that requests live stream data using the twitch tv api*
 
